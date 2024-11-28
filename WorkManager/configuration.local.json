@@ -1,0 +1,27 @@
+﻿{
+  "options": {
+  },
+  "services": [
+    {
+      "serviceName": "datastore",
+      "serviceType": "local"
+    },
+    {
+      "serviceName": "document_store",
+      "serviceType": "local"
+    },
+    {
+      "serviceName": "job_manager",
+      "serviceType": "local"
+    },
+    {
+      "serviceName": "mass_transit",
+      "serviceType": "local"
+    }
+  ],
+  "workers": [
+    {
+      "workerName": "NodeWorker"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+﻿{
+  "options": {
+    "mongo": {
+      "uri": "localhost",
+      "port": 27017,
+      "username": "admin",
+      "password": "password"
+    },
+    "S3": {
+      "host": "127.0.0.1",
+      "username": "admin",
+      "password": "password"
+    }
+  },
+  "services": [
+    {
+      "serviceName": "mongo"
+    },
+    {
+      "serviceName": "S3"
+    },
+    {
+      "serviceName": "datastore",
+      "serviceType": "S3",
+      "dependsOn": ["S3"]
+    },
+    {
+      "serviceName": "document_store",
+      "serviceType": "mongo",
+      "dependsOn": ["mongo"],
+      "options": {
+        "collection": "documents",
+        "database": "database"
+      }
+    },
+    {
+      "serviceName": "job_manager",
+      "serviceType": "mongo",
+      "dependsOn": ["mongo"],
+      "options": {
+        "collection": "jobs",
+        "database": "database"
+      }
+    },
+    {
+      "serviceName": "mass_transit",
+      "serviceType": "rabbit",
+      "options": {
+        "host": "localhost",
+        "username": "admin",
+        "password": "password",
+        "inqueue": "in",
+        "faultqueue": "fault",
+        "outqueue": "out"
+      }
+    }
+  ],
+  "workers": [
+    {
+      "workerName": "NodeWorker"
+    }
+  ]
+}

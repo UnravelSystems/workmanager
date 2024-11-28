@@ -1,0 +1,35 @@
+﻿{
+  "value": "Root",
+  "children": [
+    {
+      "value": "Child 1",
+      "children": [
+        {
+          "value": "Grandchild 1.1",
+          "children": [
+            {
+              "value": "Great Grandchild 1.1.1"
+            },
+            {
+              "value": "Great Grandchild 1.1.2"
+            }
+          ]
+        },
+        {
+          "value": "Grandchild 1.2"
+        }
+      ]
+    },
+    {
+      "value": "Child 2",
+      "children": [
+        {
+          "value": "Grandchild 2.1"
+        },
+        {
+          "value": "Grandchild 2.2"
+        }
+      ]
+    }
+  ]
+}
