@@ -10,13 +10,13 @@ using WorkManager.Configuration.Interfaces;
 namespace WorkManager.Datastore.S3;
 
 [ServiceConfiguration(ServiceName = "S3")]
-public class S3ClientServiceBuilder: ExternalServiceBuilder
+public class S3ClientServiceBuilder : ExternalServiceBuilder
 {
     public override void ConfigureServices(IServiceCollection serviceCollection, IConfigurationSection configuration)
     {
         serviceCollection.AddSingleton<IAmazonS3>(sp =>
         {
-            IOptions<S3Options> options = sp.GetService<IOptions<S3Options>>();
+            IOptions<S3Options>? options = sp.GetService<IOptions<S3Options>>();
 
             AmazonS3Config config = new AmazonS3Config
             {

@@ -20,22 +20,16 @@ public class RabbitMassTransitServiceBuilder : ExternalServiceBuilder
         serviceCollection.AddMassTransit(x =>
         {
             IServiceProvider sp = x.BuildServiceProvider();
-            IOptions<RabbitMQWorkerOptions> options = sp.GetService<IOptions<RabbitMQWorkerOptions>>();
+            IOptions<RabbitMQWorkerOptions>? options = sp.GetService<IOptions<RabbitMQWorkerOptions>>();
             if (options is null)
             {
                 throw new InvalidOperationException("RabbitMQ worker options are missing.");
             }
-            
+
             RabbitMQWorkerOptions rabbitOptions = options.Value;
-            x.AddSingleton<IWorkerManager<WorkRequest<Metadata, MessageData>>, MessageConsumer>();
-            x.AddConsumer<MessageConsumer>().Endpoint(e =>
-            {
-                e.Name = rabbitOptions.InQueue;
-            });
-            x.AddConsumer<FaultConsumer>().Endpoint(e =>
-            {
-                e.Name = rabbitOptions.FaultQueue;
-            });
+            x.AddSingleton<IWorkerManager<WorkRequest<MessageData, Metadata>>, MessageConsumer>();
+            x.AddConsumer<MessageConsumer>().Endpoint(e => { e.Name = rabbitOptions.InQueue; });
+            x.AddConsumer<FaultConsumer>().Endpoint(e => { e.Name = rabbitOptions.FaultQueue; });
             x.UsingRabbitMq((context, cfg) =>
             {
                 string hostAddress = $"rabbitmq://{rabbitOptions.Host}:{rabbitOptions.Port}";
@@ -44,7 +38,7 @@ public class RabbitMassTransitServiceBuilder : ExternalServiceBuilder
                     h.Username(rabbitOptions.Username);
                     h.Password(rabbitOptions.Password);
                 });
-                
+
                 //cfg.UseJsonSerializer();
                 cfg.ConfigureJsonSerializerOptions(jsonOptions =>
                 {
@@ -62,7 +56,7 @@ public class RabbitMassTransitServiceBuilder : ExternalServiceBuilder
                         r.ConcurrentMessageLimit = 1;
                     }
                 });
-                
+
                 ((IReceiveConfigurator)cfg).ReceiveEndpoint(rabbitOptions.FaultQueue, configureEndpoint =>
                 {
                     configureEndpoint.Consumer<FaultConsumer>(context);
@@ -74,7 +68,7 @@ public class RabbitMassTransitServiceBuilder : ExternalServiceBuilder
                 });
             });
         });
-                       
+
         serviceCollection.AddHostedService<Producer>();
     }
 }

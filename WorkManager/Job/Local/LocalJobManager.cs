@@ -7,8 +7,9 @@ namespace WorkManager.Job;
 [ServiceConfiguration(ServiceType = "local", ServiceName = "job_manager")]
 public class LocalJobManager : IJobManager
 {
-    private ConcurrentDictionary<string, long> _jobs;
+    private readonly ConcurrentDictionary<string, long> _jobs;
     private readonly ILogger<LocalJobManager> _logger;
+
     public LocalJobManager(ILogger<LocalJobManager> logger)
     {
         _logger = logger;
@@ -28,16 +29,17 @@ public class LocalJobManager : IJobManager
         {
             throw new Exception($"Job {jobId} not found");
         }
+
         return _jobs.AddOrUpdate(jobId, 1, (k, v) => v - 1);
     }
 
     public bool IsJobFinished(string jobId)
     {
-        if (!_jobs.TryGetValue(jobId, out var jobCount))
+        if (!_jobs.TryGetValue(jobId, out long jobCount))
         {
             throw new Exception($"Job {jobId} not found");
         }
-        
+
         return jobCount == 0;
     }
 

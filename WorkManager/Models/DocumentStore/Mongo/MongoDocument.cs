@@ -1,6 +1,4 @@
 ﻿using MongoDB.Bson;
-using WorkManager.Database.Mongo;
-using WorkManager.MassTransit;
 using WorkManager.Models.S3;
 using WorkManager.Models.Tree;
 
@@ -8,7 +6,8 @@ namespace WorkManager.Models.Mongo;
 
 public class MongoDocument : TreeDocument
 {
-    public MongoDocument(string jobId, string documentId, StringTreeNode data, Metadata metadata) : base(jobId, documentId, data, metadata)
+    public MongoDocument(string jobId, string documentId, StringTreeNode data, Metadata metadata) : base(jobId,
+        documentId, data, metadata)
     {
     }
 

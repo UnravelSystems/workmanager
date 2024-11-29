@@ -1,47 +1,58 @@
 ﻿using System.Reflection;
 using MassTransit;
-using MassTransit.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WorkManager.Configuration.Interfaces;
 
 namespace WorkManager.Configuration;
 
+/// <summary>
+/// Extension for registering services
+/// </summary>
 public static class RegisterServiceFromConfigurationExtension
 {
-    private static Dictionary<string, Dictionary<string, Type>> _serviceMap = new Dictionary<string, Dictionary<string, Type>>();
+    private static readonly Dictionary<string, Dictionary<string, Type>> _serviceMap = new();
 
+    /// <summary>
+    /// Static constructor to load up services
+    /// </summary>
     static RegisterServiceFromConfigurationExtension()
     {
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        foreach (Type type in GetExternalServiceConfigurations(assembly))
         {
-            foreach (var type in GetExternalServiceConfigurations(assembly))
+            ServiceConfigurationAttribute attribute =
+                (ServiceConfigurationAttribute)type.GetCustomAttribute(typeof(ServiceConfigurationAttribute))!;
+
+            if (attribute.ServiceName != null)
             {
-                ServiceConfigurationAttribute attribute = (ServiceConfigurationAttribute)type.GetCustomAttribute(typeof(ServiceConfigurationAttribute));
-                if (!_serviceMap.ContainsKey(attribute.ServiceName))
+                if(!_serviceMap.ContainsKey(attribute.ServiceName))
                 {
                     _serviceMap.Add(attribute.ServiceName, new Dictionary<string, Type>());
                 }
-                
                 _serviceMap[attribute.ServiceName].Add(attribute.ServiceType, type);
             }
         }
     }
-    
-    static IEnumerable<Type> GetExternalServiceConfigurations(Assembly assembly) {
-        foreach(Type type in assembly.GetTypes()) {
-            if (type.GetCustomAttributes(typeof(ServiceConfigurationAttribute), true).Length > 0) {
+
+    private static IEnumerable<Type> GetExternalServiceConfigurations(Assembly assembly)
+    {
+        foreach (Type type in assembly.GetTypes())
+        {
+            if (type.GetCustomAttributes(typeof(ServiceConfigurationAttribute), true).Length > 0)
+            {
                 yield return type;
             }
         }
     }
 
-    static ServiceLifetime GetServiceScope(Type serviceType)
+    private static ServiceLifetime GetServiceScope(Type serviceType)
     {
-        ServiceConfigurationAttribute attribute = (ServiceConfigurationAttribute)serviceType.GetCustomAttribute(typeof(ServiceConfigurationAttribute))!;
+        ServiceConfigurationAttribute attribute =
+            (ServiceConfigurationAttribute)serviceType.GetCustomAttribute(typeof(ServiceConfigurationAttribute))!;
         return attribute.Scope;
     }
-    
+
     public static IServiceCollection RegisterServicesFromConfiguration(
         this IServiceCollection serviceCollection,
         IConfiguration configuration)
@@ -53,7 +64,7 @@ public static class RegisterServiceFromConfigurationExtension
             string serviceName = serviceSection.GetValue<string>("serviceName")!;
             string serviceTypeName = serviceSection.GetValue<string>("serviceType", "default")!;
             Type serviceType = ValidateAndGetServiceType(serviceName, serviceTypeName);
-            
+
             ValidateDependsOn(serviceSection, seenServices, serviceName);
 
             try
@@ -61,9 +72,10 @@ public static class RegisterServiceFromConfigurationExtension
                 IConfigurationSection optionsSection = serviceSection.GetSection("options");
                 if (optionsSection.Exists())
                 {
-                    RegisterOptionsFromConfigurationExtension.AddOptionsWithValidateOnStart(serviceCollection, optionsSection, $"{serviceName}.{serviceTypeName}");
+                    RegisterOptionsFromConfigurationExtension.AddOptionsWithValidateOnStart(serviceCollection,
+                        optionsSection, $"{serviceName}.{serviceTypeName}");
                 }
-                
+
                 // More complex type of service builder, call the appropriate method for configuring the services
                 if (typeof(ExternalServiceBuilder).IsAssignableFrom(serviceType))
                 {
@@ -80,7 +92,7 @@ public static class RegisterServiceFromConfigurationExtension
             {
                 throw new InvalidOperationException($"Failed to register service: '{serviceName}'", e);
             }
-            
+
             seenServices.Add(serviceName.ToLower());
         }
 
@@ -90,7 +102,7 @@ public static class RegisterServiceFromConfigurationExtension
     private static void RegisterService(IServiceCollection serviceCollection, Type serviceType, ServiceLifetime scope)
     {
         Type[] interfaces = serviceType.GetInterfaces();
-
+        
         foreach (Type @interface in interfaces)
         {
             switch (scope)
@@ -110,14 +122,65 @@ public static class RegisterServiceFromConfigurationExtension
         }
     }
 
+    private static IEnumerable<Type> GetAllInheritedTypes(Type serviceType)
+    {
+        HashSet<Type> yieldedTypes = new();
+        Type curType = serviceType;
+        do
+        {
+            if (!yieldedTypes.Contains(curType))
+            {
+                yield return curType;
+                yieldedTypes.Add(curType);
+            }
+            foreach (Type interfaceType in curType.GetInterfaces())
+            {
+                if (!yieldedTypes.Contains(interfaceType))
+                {
+                    yield return interfaceType;
+                    yieldedTypes.Add(interfaceType);
+                }
+            }
+            curType = curType.BaseType;
+        } while (curType != null && curType != typeof(object));
+    }
+    private static IEnumerable<Type> GetInterfaceCombinations(Type serviceType)
+    {
+        foreach (Type interfaceType in GetAllInheritedTypes(serviceType))
+        {
+            if (interfaceType.IsInterface)
+            {
+                Type[] genericArguments = interfaceType.GetGenericArguments();
+                if (genericArguments.Length == 1)
+                {
+                    Type genericType = interfaceType.GetGenericTypeDefinition();
+                    
+                    foreach (Type subInterface in GetAllInheritedTypes(genericArguments[0]))
+                    {
+                        yield return genericType.MakeGenericType(subInterface);
+                    }
+                    yield return genericType.MakeGenericType(genericArguments[0]);
+                }
+                else
+                {
+                    yield return interfaceType;
+                }
+            }
+            else
+            {
+                yield return interfaceType;
+            }
+        }
+    }
+
     private static Type ValidateAndGetServiceType(string serviceName, string serviceTypeName)
     {
-        if (!_serviceMap.TryGetValue(serviceName, out Dictionary<string, Type> serviceTypeMap))
+        if (!_serviceMap.TryGetValue(serviceName, out Dictionary<string, Type>? serviceTypeMap))
         {
             throw new InvalidOperationException($"No service class found for '{serviceName}'.");
         }
-            
-        if (!serviceTypeMap.TryGetValue(serviceTypeName, out Type serviceType))
+
+        if (!serviceTypeMap.TryGetValue(serviceTypeName, out Type? serviceType))
         {
             throw new InvalidOperationException($"No service type found for '{serviceName}/{serviceTypeName}'.");
         }
@@ -125,18 +188,20 @@ public static class RegisterServiceFromConfigurationExtension
         return serviceType;
     }
 
-    private static void ValidateDependsOn(IConfiguration serviceConfiguration, HashSet<string> seenServices, String serviceName)
+    private static void ValidateDependsOn(IConfiguration serviceConfiguration, HashSet<string> seenServices,
+        string serviceName)
     {
-            
         IConfigurationSection dependsOn = serviceConfiguration.GetSection("dependsOn");
         if (dependsOn.Exists())
         {
             foreach (IConfigurationSection dependsOnSection in dependsOn.GetChildren())
             {
                 string? dependsOnServiceName = dependsOnSection.Value;
-                if (!string.IsNullOrEmpty(dependsOnServiceName) && !seenServices.Contains(dependsOnServiceName.ToLower()))
+                if (!string.IsNullOrEmpty(dependsOnServiceName) &&
+                    !seenServices.Contains(dependsOnServiceName.ToLower()))
                 {
-                    throw new ConfigurationException($"Missing Dependency: Service '{serviceName}' depends on '{dependsOnServiceName}'.");
+                    throw new ConfigurationException(
+                        $"Missing Dependency: Service '{serviceName}' depends on '{dependsOnServiceName}'.");
                 }
             }
         }

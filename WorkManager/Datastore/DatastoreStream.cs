@@ -3,10 +3,19 @@
 namespace WorkManager.Datastore;
 
 /// <summary>
-/// Used to wrap a data stream so that it computes the MD5 hash and length of a stream being stored
+///     Used to wrap a data stream so that it computes the MD5 hash and length of a stream being stored
 /// </summary>
 public class DatastoreStream : Stream
 {
+    private readonly Stream _innerStream;
+    private readonly MD5 _md5 = MD5.Create();
+
+    public DatastoreStream(Stream innerStream)
+    {
+        _innerStream = innerStream;
+        _md5.Initialize();
+    }
+
     public string MD5String
     {
         get
@@ -17,15 +26,18 @@ public class DatastoreStream : Stream
     }
 
     public long FileSize { get; set; }
-    private readonly Stream _innerStream;
-    private readonly MD5 _md5 = MD5.Create();
 
-    public DatastoreStream(Stream innerStream)
+    public override bool CanRead => _innerStream.CanRead;
+    public override bool CanSeek => _innerStream.CanSeek;
+    public override bool CanWrite => false;
+    public override long Length => _innerStream.Length;
+
+    public override long Position
     {
-        _innerStream = innerStream;
-        _md5.Initialize();
+        get => _innerStream.Position;
+        set => throw new NotImplementedException();
     }
-    
+
     public override void Flush()
     {
         _innerStream.Flush();
@@ -38,6 +50,7 @@ public class DatastoreStream : Stream
         {
             return read;
         }
+
         FileSize += read;
         _md5.TransformBlock(buffer, offset, read, null, 0);
         return read;
@@ -58,24 +71,14 @@ public class DatastoreStream : Stream
         throw new NotImplementedException();
     }
 
-    public override bool CanRead => _innerStream.CanRead;
-    public override bool CanSeek => _innerStream.CanSeek;
-    public override bool CanWrite => false;
-    public override long Length => _innerStream.Length;
-
-    public override long Position
-    {
-        get => _innerStream.Position;
-        set => throw new NotImplementedException();
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             _innerStream.Dispose();
             _md5.Dispose();
-        } 
+        }
+
         base.Dispose(disposing);
     }
 }

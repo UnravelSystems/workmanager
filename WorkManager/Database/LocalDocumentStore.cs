@@ -1,6 +1,4 @@
 ﻿using WorkManager.Configuration;
-using WorkManager.Configuration.Database.External;
-using WorkManager.Database.Mongo;
 using WorkManager.Models;
 
 namespace WorkManager.Database;

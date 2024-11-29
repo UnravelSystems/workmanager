@@ -16,12 +16,9 @@ public class LocalMassTransitServiceBuilder : ExternalServiceBuilder
         {
             x.AddConsumer<MessageConsumer>();
             x.AddConsumer<FaultConsumer>();
-            x.UsingInMemory((context, cfg) =>
-            {
-                cfg.ConfigureEndpoints(context);
-            });
+            x.UsingInMemory((context, cfg) => { cfg.ConfigureEndpoints(context); });
         });
-                       
+
         serviceCollection.AddHostedService<Producer>();
     }
 }

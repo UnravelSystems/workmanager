@@ -22,12 +22,16 @@
     {
       "serviceName": "datastore",
       "serviceType": "S3",
-      "dependsOn": ["S3"]
+      "dependsOn": [
+        "S3"
+      ]
     },
     {
       "serviceName": "document_store",
       "serviceType": "mongo",
-      "dependsOn": ["mongo"],
+      "dependsOn": [
+        "mongo"
+      ],
       "options": {
         "collection": "documents",
         "database": "database"
@@ -36,7 +40,9 @@
     {
       "serviceName": "job_manager",
       "serviceType": "mongo",
-      "dependsOn": ["mongo"],
+      "dependsOn": [
+        "mongo"
+      ],
       "options": {
         "collection": "jobs",
         "database": "database"
