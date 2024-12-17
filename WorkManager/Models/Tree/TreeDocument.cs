@@ -1,11 +1,14 @@
-﻿
-
-using WorkManager.Models.S3;
+﻿using WorkManager.Models.S3;
 
 namespace WorkManager.Models.Tree;
 
 public class TreeDocument : Document<StringTreeNode, Metadata>
 {
+    public TreeDocument()
+    {
+        
+    }
+    
     public TreeDocument(string jobId, string documentId, StringTreeNode data, Metadata metadata) : base(jobId,
         documentId, data, metadata)
     {

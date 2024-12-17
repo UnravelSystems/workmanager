@@ -4,4 +4,5 @@
 public class WorkerAttribute : Attribute
 {
     public string WorkerName { get; set; }
+    public List<Type> ServiceTypes { get; set; } = new List<Type>();
 }

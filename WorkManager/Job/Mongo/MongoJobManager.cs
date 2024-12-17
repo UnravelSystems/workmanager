@@ -1,56 +1,50 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using WorkManager.Configuration;
 using WorkManager.Configuration.Job;
+using WorkManager.Job.POCO;
 
-namespace WorkManager.Job;
+namespace WorkManager.Job.Mongo;
 
-public class Job
+public class MongoJobObject : JobObject
 {
-    [BsonId] public ObjectId Id { get; set; }
-
-    public string JobId { get; set; }
-    public long CurrentTasks { get; set; }
-    public DateTime StartTime { get; set; }
-    public DateTime LastUpdateTime { get; set; }
+    public ObjectId _id { get; set; }
 }
 
 [ServiceConfiguration(ServiceType = "mongo", ServiceName = "job_manager")]
 public class MongoJobManager : IJobManager
 {
-    private readonly IMongoCollection<Job> _collection;
+    private readonly IMongoCollection<MongoJobObject> _collection;
     private readonly IMongoDatabase _database;
     private readonly ILogger<MongoJobManager> _logger;
 
-    private readonly FindOneAndUpdateOptions<Job> _updateOptions = new()
+    private readonly FindOneAndUpdateOptions<MongoJobObject> _updateOptions = new()
     {
         IsUpsert = false,
         ReturnDocument = ReturnDocument.After
     };
 
-    private readonly FindOneAndUpdateOptions<Job> _upsertOptions = new()
+    private readonly FindOneAndUpdateOptions<MongoJobObject> _upsertOptions = new()
     {
         IsUpsert = true,
         ReturnDocument = ReturnDocument.After
     };
 
-    public MongoJobManager(IMongoClient client, IOptions<MongoJobManagerOptions> options,
+    public MongoJobManager(IMongoClient client, IOptions<MongoJobManagerOptions> mongoJobManagerOptions,
         ILogger<MongoJobManager> logger)
     {
-        _database = client.GetDatabase(options.Value.Database);
+        _database = client.GetDatabase(mongoJobManagerOptions.Value.Database);
+        _collection = _database.GetCollection<MongoJobObject>(mongoJobManagerOptions.Value.Collection);
         _logger = logger;
-        CreateCollectionIfNotExists(options.Value.Collection);
-        _collection = _database.GetCollection<Job>(options.Value.Collection);
     }
 
     public long AddTask(string jobId, string taskId)
     {
-        Job? foundJob = _collection.FindOneAndUpdate(
-            Builders<Job>.Filter.Where(j => j.JobId == jobId),
-            Builders<Job>.Update
+        JobObject? foundJob = _collection.FindOneAndUpdate(
+            Builders<MongoJobObject>.Filter.Where(j => j.JobId == jobId),
+            Builders<MongoJobObject>.Update
                 .SetOnInsert(j => j.StartTime, DateTime.UtcNow)
                 .SetOnInsert(j => j.JobId, jobId)
                 .Set(j => j.LastUpdateTime, DateTime.UtcNow)
@@ -63,9 +57,9 @@ public class MongoJobManager : IJobManager
     public long RemoveTask(string jobId, string taskId)
     {
         _logger.LogDebug($"Decrementing task {jobId}");
-        Job? foundJob = _collection.FindOneAndUpdate(
-            Builders<Job>.Filter.Where(j => j.JobId == jobId),
-            Builders<Job>.Update
+        JobObject? foundJob = _collection.FindOneAndUpdate(
+            Builders<MongoJobObject>.Filter.Where(j => j.JobId == jobId),
+            Builders<MongoJobObject>.Update
                 .Set(j => j.LastUpdateTime, DateTime.UtcNow)
                 .Inc("CurrentTasks", -1),
             _updateOptions);
@@ -81,7 +75,7 @@ public class MongoJobManager : IJobManager
 
     public bool IsJobFinished(string jobId)
     {
-        Job? job = _collection.FindSync(Builders<Job>.Filter.Where(j => j.JobId == jobId)).FirstOrDefault();
+        JobObject? job = _collection.FindSync(Builders<MongoJobObject>.Filter.Where(j => j.JobId == jobId)).FirstOrDefault();
         if (job == null)
         {
             return true;
@@ -93,12 +87,7 @@ public class MongoJobManager : IJobManager
     public bool FinishJob(string jobId)
     {
         _logger.LogInformation($"Removing task {jobId}");
-        DeleteResult? result = _collection.DeleteOne(Builders<Job>.Filter.Where(j => j.JobId == jobId));
+        DeleteResult? result = _collection.DeleteOne(Builders<MongoJobObject>.Filter.Where(j => j.JobId == jobId));
         return result.DeletedCount == 1;
-    }
-
-    private void CreateCollectionIfNotExists(string collectionName)
-    {
-        _database.CreateCollection(collectionName);
     }
 }

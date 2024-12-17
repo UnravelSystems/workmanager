@@ -35,6 +35,25 @@ public static class RegisterServiceFromConfigurationExtension
         }
     }
 
+    private static IEnumerable<Type> GetServiceTypes(Type type)
+    {
+        foreach (Type @interface in GetAllInheritedTypes(type))
+        {
+            yield return @interface;
+        }
+        
+        ServiceConfigurationAttribute attribute =
+            (ServiceConfigurationAttribute)type.GetCustomAttribute(typeof(ServiceConfigurationAttribute))!;
+
+        if (attribute.ServiceTypes != null)
+        {
+            foreach (Type serviceType in attribute.ServiceTypes)
+            {
+                yield return serviceType;
+            }
+        }
+    }
+    
     private static IEnumerable<Type> GetExternalServiceConfigurations(Assembly assembly)
     {
         foreach (Type type in assembly.GetTypes())
@@ -77,9 +96,9 @@ public static class RegisterServiceFromConfigurationExtension
                 }
 
                 // More complex type of service builder, call the appropriate method for configuring the services
-                if (typeof(ExternalServiceBuilder).IsAssignableFrom(serviceType))
+                if (typeof(IExternalServiceBuilder).IsAssignableFrom(serviceType))
                 {
-                    ExternalServiceBuilder instance = (ExternalServiceBuilder)Activator.CreateInstance(serviceType)!;
+                    IExternalServiceBuilder instance = (IExternalServiceBuilder)Activator.CreateInstance(serviceType)!;
                     instance.ConfigureServices(serviceCollection, serviceSection);
                 }
                 else
@@ -101,9 +120,7 @@ public static class RegisterServiceFromConfigurationExtension
 
     private static void RegisterService(IServiceCollection serviceCollection, Type serviceType, ServiceLifetime scope)
     {
-        Type[] interfaces = serviceType.GetInterfaces();
-        
-        foreach (Type @interface in interfaces)
+        foreach (Type @interface in GetServiceTypes(serviceType))
         {
             switch (scope)
             {

@@ -13,9 +13,9 @@ using WorkManager.WorkerManager;
 namespace WorkManager.MassTransit;
 
 [ServiceConfiguration(ServiceName = "mass_transit", ServiceType = "rabbit")]
-public class RabbitMassTransitServiceBuilder : ExternalServiceBuilder
+public class RabbitMassTransitServiceBuilder : IExternalServiceBuilder
 {
-    public override void ConfigureServices(IServiceCollection serviceCollection, IConfigurationSection configuration)
+    public void ConfigureServices(IServiceCollection serviceCollection, IConfigurationSection configuration)
     {
         serviceCollection.AddMassTransit(x =>
         {

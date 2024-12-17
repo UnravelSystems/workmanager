@@ -20,11 +20,12 @@
         <PackageReference Include="AWSSDK.S3" Version="3.7.405.11"/>
         <PackageReference Include="CommandLineParser" Version="2.9.1"/>
         <PackageReference Include="MassTransit" Version="8.3.0"/>
-        <PackageReference Include="MassTransit.MongoDb" Version="8.3.0"/>
         <PackageReference Include="MassTransit.RabbitMQ" Version="8.3.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1"/>
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1"/>
         <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.0-rc.2.24473.5"/>
+        <PackageReference Include="MongoDB.EntityFrameworkCore" Version="8.0.0" />
         <PackageReference Include="YamlDotNet" Version="16.1.3"/>
     </ItemGroup>
 
@@ -37,6 +38,9 @@
         </None>
         <None Update="data.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="configuration.ef.json">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 

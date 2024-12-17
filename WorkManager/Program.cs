@@ -14,7 +14,7 @@ internal class Program
     public static IHostBuilder Configure(string[] args)
     {
         return Host.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((_, builder) => builder.AddJsonFile("configuration.json"))
+            .ConfigureAppConfiguration((_, builder) => builder.AddJsonFile("configuration.ef.json"))
             .ConfigureServices((ctx, services) =>
             {
                 services.RegisterOptionsFromConfiguration(ctx.Configuration);

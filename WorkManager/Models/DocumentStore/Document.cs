@@ -1,12 +1,18 @@
-﻿namespace WorkManager.Models;
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace WorkManager.Models;
 
 /// <summary>
 ///     Basis for a document being stored in a document store. This is what is deemed as the basic requirement for working.
+///     Decorating the class with [PrimaryKey(...)] helps with EFCore ensuring the Primary Key is known before conventions occur.
 /// </summary>
 /// <typeparam name="TData">The data type for the actual data being stored</typeparam>
 /// <typeparam name="TMetadata">Metadata type for storing information about the source of the data</typeparam>
+[PrimaryKey("DocumentId")]
 public class Document<TData, TMetadata>
 {
+    public Document() {}
+    
     public Document(string jobId, string documentId, TData data, TMetadata metadata)
     {
         JobId = jobId;

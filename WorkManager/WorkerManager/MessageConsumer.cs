@@ -1,6 +1,8 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 using WorkManager.Database;
+using WorkManager.Database.EntityFramework;
 using WorkManager.Datastore;
 using WorkManager.Job;
 using WorkManager.Models;
@@ -27,13 +29,13 @@ public class MessageConsumer : IConsumer<WorkRequest<MessageData, Metadata>>,
 {
     private readonly IBus _bus;
     private readonly IDatastore _datastore;
-    private readonly IDocumentStore<TreeDocument> _documentStore;
+    private readonly DocumentContext<TreeDocument> _documentStore;
     private readonly IJobManager _jobManager;
     private readonly ILogger<MessageConsumer> _logger;
     private readonly IEnumerable<IWorker<WorkRequest<MessageData, Metadata>>> _workers;
 
     public MessageConsumer(ILogger<MessageConsumer> logger, IBus bus, IJobManager jobManager, IDatastore datastore,
-        IDocumentStore<TreeDocument> documentStore,
+        DocumentContext<TreeDocument> documentStore,
         IEnumerable<IWorker<WorkRequest<MessageData, Metadata>>> workers)
     {
         _logger = logger;
@@ -90,13 +92,27 @@ public class MessageConsumer : IConsumer<WorkRequest<MessageData, Metadata>>,
         {
             writer.Write(workItem.Data);
             writer.Flush();
-            _documentStore.AddDocument(
+            _documentStore.Documents.Add(new TreeDocument()
+            {
+                JobId = workItem.JobId,
+                DocumentId = ObjectId.GenerateNewId().ToString(),
+                Data = workItem.Data.Root,
+                Metadata = new Metadata
+                {
+                    Bucket = workItem.Metadata.Bucket,
+                    Key = workItem.Metadata.Key,
+                    ResultBucket = workItem.Metadata.ResultBucket,
+                    ResultPrefix = workItem.Metadata.ResultPrefix,
+                }
+            });
+            _documentStore.SaveChanges();
+            /*_documentStore.AddDocument(
                 new TreeDocument(
                     workItem.JobId,
                     Guid.NewGuid().ToString(),
                     workItem.Data.Root,
                     workItem.Metadata)
-            );
+            );*/
             _datastore.StoreFile("test", $"{workItem.JobId}/{workItem.Data.Root.Value}", memStream);
         }
 

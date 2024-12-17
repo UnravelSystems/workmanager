@@ -8,9 +8,9 @@ using WorkManager.WorkerManager;
 namespace WorkManager.MassTransit;
 
 [ServiceConfiguration(ServiceName = "mass_transit", ServiceType = "local")]
-public class LocalMassTransitServiceBuilder : ExternalServiceBuilder
+public class LocalMassTransitServiceBuilder : IExternalServiceBuilder
 {
-    public override void ConfigureServices(IServiceCollection serviceCollection, IConfigurationSection configuration)
+    public void ConfigureServices(IServiceCollection serviceCollection, IConfigurationSection configuration)
     {
         serviceCollection.AddMassTransit(x =>
         {

@@ -3,7 +3,9 @@ using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using WorkManager.Configuration;
 using WorkManager.Configuration.Database.External;
+using WorkManager.Models;
 using WorkManager.Models.Mongo;
+using WorkManager.Models.S3;
 using WorkManager.Models.Tree;
 
 namespace WorkManager.Database.Mongo;
@@ -11,7 +13,7 @@ namespace WorkManager.Database.Mongo;
 /// <summary>
 ///     An implementation of a mongo document store which takes a TreeDocument.
 /// </summary>
-[ServiceConfiguration(ServiceName = "document_store", ServiceType = "mongo")]
+[ServiceConfiguration(ServiceName = "document_store", ServiceType = "mongo", ServiceTypes = [typeof(IDocumentStore<Document<StringTreeNode, Metadata>>)])]
 public class MongoDocumentStore : IDocumentStore<TreeDocument>
 {
     private readonly IMongoCollection<MongoDocument>? _collection;

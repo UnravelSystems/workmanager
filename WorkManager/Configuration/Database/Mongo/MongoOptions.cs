@@ -2,7 +2,7 @@
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Configuration;
 
-namespace WorkManager.Configuration.Database.External;
+namespace WorkManager.Configuration.Database.Mongo;
 
 [OptionsConfiguration(ServiceName = "mongo")]
 public class MongoOptions
