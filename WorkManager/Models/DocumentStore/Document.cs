@@ -8,7 +8,6 @@ namespace WorkManager.Models;
 /// </summary>
 /// <typeparam name="TData">The data type for the actual data being stored</typeparam>
 /// <typeparam name="TMetadata">Metadata type for storing information about the source of the data</typeparam>
-[PrimaryKey("DocumentId")]
 public class Document<TData, TMetadata>
 {
     public Document() {}

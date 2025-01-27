@@ -92,10 +92,12 @@ public class MessageConsumer : IConsumer<WorkRequest<MessageData, Metadata>>,
         {
             writer.Write(workItem.Data);
             writer.Flush();
+            String uuid = Guid.NewGuid().ToString();
+            _logger.LogInformation(uuid);
             _documentStore.Documents.Add(new TreeDocument()
             {
                 JobId = workItem.JobId,
-                DocumentId = ObjectId.GenerateNewId().ToString(),
+                //DocumentId = uuid,//.GenerateNewId().ToString(),
                 Data = workItem.Data.Root,
                 Metadata = new Metadata
                 {

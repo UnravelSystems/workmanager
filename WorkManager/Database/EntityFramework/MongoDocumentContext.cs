@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.ValueGeneration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -33,6 +35,23 @@ public class MongoDocumentContextServiceBuilder : IExternalServiceBuilder
         serviceCollection.AddSingleton(typeof(MongoDocumentContext));
     }
 }
+class ObjectIdValueGenerator : ValueGenerator<string>
+{
+    /// <summary>
+    /// Generates a unique <see cref="ObjectId"/>.
+    /// </summary>
+    /// <param name="entry">The <see cref="EntityEntry"/> this <see cref="ObjectId"/>
+    /// will be used by.</param>
+    /// <returns>A unique <see cref="ObjectId"/>.</returns>
+    public override string Next(EntityEntry entry)
+        => ObjectId.GenerateNewId().ToString();
+
+    /// <summary>
+    /// Always <see langword="false"/> as this generator is only used for permanent values.
+    /// </summary>
+    public override bool GeneratesTemporaryValues
+        => false;
+}
 
 /// <summary>
 ///     MongoDocumentContext which inherits from the DocumentContext<TreeDocument>
@@ -57,9 +76,13 @@ public class MongoDocumentContext : DocumentContext<TreeDocument>
         modelBuilder.Entity<TreeDocument>(entity =>
         {
             entity.ToCollection(_collectionName);  // Maps the collection name to this entity
+            entity.OwnsOne(t => t.Metadata);
+            entity.OwnsOne(t => t.Data);
             entity.Property(t => t.DocumentId)
                 .HasElementName("_id")
-                .HasConversion(v => ObjectId.Parse(v), v => v.ToString());
+                //.HasConversion(v => ObjectId.Parse(v), v => v.ToString())
+                .HasValueGenerator<ObjectIdValueGenerator>();
+            //entity.Property("_id").HasValueGenerator<ObjectIdValueGenerator>();
         });
         
         base.OnModelCreating(modelBuilder);
