@@ -31,21 +31,31 @@ public class SeekableStreamWrapperTests
         _memoryStream.Dispose();
     }
     
-    private FileStream GetTempFileStream(SeekableStreamWrapper seekableStreamWrapper)
+    private BufferedStream GetTempFileStream(SeekableStreamWrapper seekableStreamWrapper)
     {
         var tempFileStreamProperty = typeof(SeekableStreamWrapper).GetProperty("TempFileStream", BindingFlags.NonPublic | BindingFlags.Instance);
         if (tempFileStreamProperty == null)
         {
             throw new InvalidOperationException("TempFileStream property not found");
         }
-        return (FileStream)tempFileStreamProperty.GetValue(seekableStreamWrapper);
+        return (BufferedStream)tempFileStreamProperty.GetValue(seekableStreamWrapper);
+    }
+    
+    private string GetTempFilePath(SeekableStreamWrapper seekableStreamWrapper)
+    {
+        var tempFileStreamProperty = typeof(SeekableStreamWrapper).GetField("_tempFilePath", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (tempFileStreamProperty == null)
+        {
+            throw new InvalidOperationException("TempFileStream property not found");
+        }
+        return (string)tempFileStreamProperty.GetValue(seekableStreamWrapper);
     }
     
     [TestCase(10, Description = "Seek within the bounds of the stream")]
     [TestCase(24576, Description = "Seek to the end of the stream")]
     public void Seek_ShouldWriteDataToTempFile(long seekPosition)
     {
-        FileStream fileStream = GetTempFileStream(_seekableStreamWrapper);
+        BufferedStream fileStream = GetTempFileStream(_seekableStreamWrapper);
         long initialTempFileLength = fileStream.Length;
 
         _seekableStreamWrapper.Seek(seekPosition, SeekOrigin.Begin);
@@ -143,7 +153,7 @@ public class SeekableStreamWrapperTests
     public void Dispose_ShouldDeleteTemporaryFile()
     {
         _seekableStreamWrapper.Seek(10000, SeekOrigin.Begin);
-        string tempFilePath = GetTempFileStream(_seekableStreamWrapper)!.Name;
+        string tempFilePath = GetTempFilePath(_seekableStreamWrapper);
         Assert.IsTrue(File.Exists(tempFilePath));
 
         _seekableStreamWrapper.Dispose();
