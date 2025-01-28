@@ -60,7 +60,7 @@ public class SeekableStreamWrapperTests
 
         _seekableStreamWrapper.Seek(seekPosition, SeekOrigin.Begin);
         
-        Assert.Greater(fileStream.Length, initialTempFileLength);
+        Assert.That(fileStream.Length, Is.GreaterThan(initialTempFileLength));
     }
     
     [TestCase(0, SeekOrigin.Begin, 8192, 8192, 0, Description = "Read and validate data from beginning of the stream")]
@@ -210,13 +210,13 @@ public class SeekableStreamWrapperTests
     {
         _seekableStreamWrapper.Seek(10000, SeekOrigin.Begin);
         string tempFilePath = GetTempFilePath(_seekableStreamWrapper);
-        Assert.IsTrue(File.Exists(tempFilePath));
+        Assert.That(File.Exists(tempFilePath), Is.True);
 
         _seekableStreamWrapper.Dispose();
-        Assert.IsTrue(File.Exists(tempFilePath));
+        Assert.That(File.Exists(tempFilePath), Is.True);
         
         _seekableStreamWrapper.DisposeForReal();
-        Assert.IsFalse(File.Exists(tempFilePath));
+        Assert.That(File.Exists(tempFilePath), Is.False);
     }
 
     private Stream? GetInnerStream(SeekableStreamWrapper streamWrapper)
