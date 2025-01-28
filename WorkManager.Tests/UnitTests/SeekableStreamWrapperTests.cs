@@ -110,10 +110,40 @@ public class SeekableStreamWrapperTests
     }
 
     [Test]
+    public void SeekableStream_ReadThenSeekToZero_InnerStreamPositionIsUnchanged()
+    {
+        Stream innerStream = GetInnerStream(_seekableStreamWrapper)!;
+        byte[] buffer = new byte[8192];
+        int bytesRead = _seekableStreamWrapper.Read(buffer, 0, 8192);
+        Assert.Multiple(() =>
+        {
+            Assert.That(bytesRead, Is.EqualTo(8192));
+            Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(8192));
+            Assert.That(innerStream.Position, Is.EqualTo(8192));
+        });
+
+        _seekableStreamWrapper.Seek(0, SeekOrigin.Begin);
+        Assert.Multiple(() =>
+        {
+            Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(0));
+            Assert.That(innerStream.Position, Is.EqualTo(8192));
+        });
+
+        buffer = new byte[8192];
+        bytesRead = _seekableStreamWrapper.Read(buffer, 0, 4096);
+        Assert.Multiple(() =>
+        {
+            Assert.That(bytesRead, Is.EqualTo(4096));
+            Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(4096));
+            Assert.That(innerStream.Position, Is.EqualTo(8192));
+        });
+    }
+
+    [Test]
     public void Dispose_ShouldDeleteTemporaryFile()
     {
         _seekableStreamWrapper.Seek(10000, SeekOrigin.Begin);
-        string tempFilePath = GetTemporaryFilePath(_seekableStreamWrapper);
+        string tempFilePath = GetTempFileStream(_seekableStreamWrapper)!.Name;
         Assert.IsTrue(File.Exists(tempFilePath));
 
         _seekableStreamWrapper.Dispose();
@@ -123,15 +153,14 @@ public class SeekableStreamWrapperTests
         Assert.IsFalse(File.Exists(tempFilePath));
     }
 
-    private string GetTemporaryFilePath(SeekableStreamWrapper streamWrapper)
+    private Stream? GetInnerStream(SeekableStreamWrapper streamWrapper)
     {
         // Reflection to access private _tempFileStream field and get the temporary file path
-        var tempFileStreamField = typeof(SeekableStreamWrapper).GetField("_tempFileStream",
+        var tempFileStreamField = typeof(SeekableStreamWrapper).GetField("_innerStream",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (tempFileStreamField != null)
         {
-            var tempFileStream = (FileStream)tempFileStreamField.GetValue(streamWrapper);
-            return tempFileStream?.Name;
+            return (Stream)tempFileStreamField.GetValue(streamWrapper);
         }
 
         return null;
