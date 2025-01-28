@@ -19,7 +19,7 @@ public class SeekableStreamWrapperTests
     public void Setup()
     {
         _memoryStream = new MemoryStream(_testData);
-        _seekableStreamWrapper = new SeekableStreamWrapper(_memoryStream, _testData.Length);
+        _seekableStreamWrapper = new SeekableStreamWrapper(_memoryStream, _testData.Length, 8192);
     }
 
     [TearDown]
@@ -118,6 +118,16 @@ public class SeekableStreamWrapperTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => _seekableStreamWrapper.Seek(offset, origin));
     }
+    
+    [TestCase(0, 10000, Description = "Count is larger than internal buffer")]
+    [TestCase(600, 500, Description = "Count + Offset is larger than internal buffer")]
+    [TestCase(-1, 10000, Description = "Offset is less than 0")]
+    [TestCase(600, -1, Description = "Count is less than 0")]
+    public void SeekableStream_Read_InvalidArguments(int offset, int count)
+    {
+        byte[] buffer = new byte[1000];
+        Assert.Throws<ArgumentOutOfRangeException>(() => _seekableStreamWrapper.Read(buffer, offset, count));
+    }
 
     [Test]
     public void SeekableStream_ReadThenSeekToZero_InnerStreamPositionIsUnchanged()
@@ -147,6 +157,52 @@ public class SeekableStreamWrapperTests
             Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(4096));
             Assert.That(innerStream.Position, Is.EqualTo(8192));
         });
+    }
+    
+    [Test]
+    public void Seek_WithinBounds_ShouldSeekFromCurrentOrBeginDependingOnDistance()
+    {
+        _seekableStreamWrapper.Seek(1000, SeekOrigin.Begin); // Set initial position
+
+        // Case where seeking from Begin is closer
+        long position = _seekableStreamWrapper.Seek(100, SeekOrigin.Begin);
+        Assert.That(position, Is.EqualTo(100));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(100));
+
+        // Case where seeking from Current is closer
+        _seekableStreamWrapper.Seek(700, SeekOrigin.Begin);
+        position = _seekableStreamWrapper.Seek(600, SeekOrigin.Begin);
+        Assert.That(position, Is.EqualTo(600));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(600));
+
+        // Case where seeking from Current is after the current position
+        _seekableStreamWrapper.Seek(500, SeekOrigin.Begin);
+        position = _seekableStreamWrapper.Seek(600, SeekOrigin.Begin);
+        Assert.That(position, Is.EqualTo(600));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(600));
+    }
+    
+    [Test]
+    public void SetPosition_WithinBounds_ShouldSeekFromCurrentOrBeginDependingOnDistance()
+    {
+        _seekableStreamWrapper.Position = 1000; // Set initial position
+
+        // Case where seeking from Begin is closer
+        long position = _seekableStreamWrapper.Position = 100;
+        Assert.That(position, Is.EqualTo(100));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(100));
+
+        // Case where seeking from Current is closer
+        _seekableStreamWrapper.Position = 700;
+        position = _seekableStreamWrapper.Position = 600;
+        Assert.That(position, Is.EqualTo(600));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(600));
+
+        // Case where seeking from Current is after the current position
+        _seekableStreamWrapper.Position = 500;
+        position = _seekableStreamWrapper.Position = 600;;
+        Assert.That(position, Is.EqualTo(600));
+        Assert.That(_seekableStreamWrapper.Position, Is.EqualTo(600));
     }
 
     [Test]
